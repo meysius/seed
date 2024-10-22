@@ -1,0 +1,12 @@
+.input {
+  transition: none;
+
+  &:focus-within {
+    outline: 2px solid var(--mantine-primary-color-filled);
+    border-color: transparent;
+  }
+
+  &[data-error] {
+    outline-color: var(--mantine-color-red);
+  }
+}

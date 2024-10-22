@@ -1,0 +1,58 @@
+inputs:
+  ecs-cluster:
+    required: true
+    type: string
+  task-family:
+    required: true
+    type: string
+  ecs-service:
+    required: true
+    type: string
+  image-url:
+    required: true
+    type: string
+  aws-region:
+    required: true
+    type: string
+  aws-access-key-id:
+    required: true
+    type: string
+  aws-secret-access-key:
+    required: true
+    type: string
+
+runs:
+  using: "composite"
+  steps:
+    - name: Download task definition
+      env:
+        AWS_REGION:            ${{ inputs.aws-region }}
+        AWS_ACCESS_KEY_ID:     ${{ inputs.aws-access-key-id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
+      shell: bash
+      run: |
+        aws ecs describe-task-definition --task-definition "${{ inputs.task-family }}" --query taskDefinition > ${{ inputs.task-family }}.json
+
+    - name: Render new task definition
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      env:
+        AWS_REGION:            ${{ inputs.aws-region }}
+        AWS_ACCESS_KEY_ID:     ${{ inputs.aws-access-key-id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
+      with:
+        task-definition: ${{ inputs.task-family }}.json
+        container-name: ${{ inputs.task-family }}
+        image: ${{ inputs.image-url }}
+
+    - name: Deploy
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      env:
+        AWS_REGION:            ${{ inputs.aws-region }}
+        AWS_ACCESS_KEY_ID:     ${{ inputs.aws-access-key-id }}
+        AWS_SECRET_ACCESS_KEY: ${{ inputs.aws-secret-access-key }}
+      with:
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        cluster: ${{ inputs.ecs-cluster }}
+        service: ${{ inputs.ecs-service }}
+        wait-for-service-stability: true

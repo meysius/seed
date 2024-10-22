@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import subprocess
+
+home = os.getcwd()
+
+concurrent_commands = ["dev"]
+
+apps = [
+    {
+        "name": "frontend",
+        "color": "red",
+        "path": f"{home}/frontend",
+        "commands": {
+            "install": "npm install",
+            "dev": "npm run dev",
+        }
+    },
+    {
+        "name": "identity",
+        "color": "cyan",
+        "path": f"{home}/identity",
+        "commands": {
+            "install": "poetry install",
+            "dev": "poe dev",
+        }
+    },
+]
+
+def colorize(string, color):
+    colors = {"red": 31, "green": 32, "yellow": 33, "blue": 34, "magenta": 35, "cyan": 36}
+    color_code = colors.get(color, 2)
+    return f"\033[{color_code}m{string}\033[0m"
+
+if len(sys.argv) > 1:
+    command = sys.argv[1]
+else:
+    print("Please provide a command.")
+    sys.exit(1)
+
+run_serially = command not in concurrent_commands
+commands = []
+names = []
+colors = []
+
+for app in apps:
+    cmd = app["commands"].get(command, f"echo 'No command found for {command} in {app['name']}'")
+    names.append(f"{app['name']}-------------"[:9])
+    colors.append(app["color"])
+    commands.append(f"cd {app['path']} && {cmd}")
+
+max_processes = 1 if run_serially else len(apps)
+concurrent_command = f"concurrently {' '.join(map(lambda x: f'"{x}"', commands))} -p '{{name}} |' -n {','.join(names)} -c {','.join(colors)} --max-processes {max_processes}"
+
+print(f"Running: {concurrent_command}")
+subprocess.run(concurrent_command, shell=True)

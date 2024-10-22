@@ -1,0 +1,43 @@
+display_information:
+  name: Pacely
+  description: Accelerate Development - Pacely
+  background_color: "#211c21"
+features:
+  bot_user:
+    display_name: Pacely
+    always_online: true
+  slash_commands:
+    - command: /pacely_guideline
+      url: https://identity.pacely.dev/api/v1/slack_commands
+      description: Invoke Pacely to provides contextual guideline
+      usage_hint: Fix the bug with double payment on checkout.
+      should_escape: false
+    - command: /pacely_code_insight
+      url: https://identity.pacely.dev/api/v1/slack_commands
+      description: Invoke Pacely to provide code insight
+      usage_hint: Walk me through the password recovery flow.
+      should_escape: false
+    - command: /pacely_answer
+      url: https://identity.pacely.dev/api/v1/slack_commands
+      description: Invoke Pacely AI to answers any generic question
+      usage_hint: What is ECS Fargate spot and how does it reduce cost?
+      should_escape: false
+  unfurl_domains:
+    - pacely.dev
+oauth_config:
+  redirect_urls:
+    - https://pacely.dev
+  scopes:
+    bot:
+      - links:read
+      - links:write
+      - chat:write
+      - commands
+settings:
+  event_subscriptions:
+    request_url: https://identity.pacely.dev/api/v1/slack_link_previews
+    bot_events:
+      - link_shared
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

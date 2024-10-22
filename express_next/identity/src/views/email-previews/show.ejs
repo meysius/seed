@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Preview: <%= email.subject %></title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
+        .email-meta { background-color: #f2f2f2; padding: 20px; margin-bottom: 20px; }
+        .email-content { border: 1px solid #ddd; padding: 20px; }
+        a { color: #007bff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>Email Preview</h1>
+    <a href="/emails">&larr; Back to Email List</a>
+    <div class="email-meta">
+        <div><strong>From:</strong> <%= JSON.stringify(email.from) %></div>
+        <div><strong>To:</strong> <%= JSON.stringify(email.to) %></div>
+        <div><strong>Subject:</strong> <%= email.subject %></div>
+    </div>
+    <h2>HTML:</h2>
+    <div class="email-content">
+        <%- email.html %>
+    </div>
+    <h2>Plain Text:</h2>
+    <pre><%= email.text %></pre>
+</body>
+</html>

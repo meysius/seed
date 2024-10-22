@@ -1,0 +1,58 @@
+on:
+  workflow_call:
+
+jobs:
+  e2e_tests:
+    name: E2E Tests
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pull Webapp
+        uses: ./.github/actions/ghcr_pull
+        with:
+          tag: webapp
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull Identity
+        uses: ./.github/actions/ghcr_pull
+        with:
+          tag: identity
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull Ticketing
+        uses: ./.github/actions/ghcr_pull
+        with:
+          tag: ticketing
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull Activity
+        uses: ./.github/actions/ghcr_pull
+        with:
+          tag: activity
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull Coding
+        uses: ./.github/actions/ghcr_pull
+        with:
+          tag: coding
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup databases
+        run: |
+          docker-compose -f webapp/docker-compose.e2e.yml run identity bin/identity eval "Release.create_db_if_not_exists; Release.migrate"
+          docker-compose -f webapp/docker-compose.e2e.yml run ticketing bin/ticketing eval "Release.create_db_if_not_exists; Release.migrate"
+          docker-compose -f webapp/docker-compose.e2e.yml run activity bin/activity eval "Release.create_db_if_not_exists; Release.migrate"
+          docker-compose -f webapp/docker-compose.e2e.yml run coding bin/coding eval "Release.create_db_if_not_exists; Release.migrate"
+
+      - name: Run end-to-end tests
+        run: |
+          cd webapp && yarn add cypress-plugin-stripe-elements@1.0.2
+          docker-compose -f docker-compose.e2e.yml up --exit-code-from cypress
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: cypress-snapshots
+          path: webapp/cypress/screenshots

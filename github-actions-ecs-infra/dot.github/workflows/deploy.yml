@@ -1,0 +1,253 @@
+name: Deploy
+run-name: Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip tests'
+        required: true
+        default: false
+        type: boolean
+
+jobs:
+  identity_unit_tests:
+    if: github.event_name == 'push' || github.event.inputs.skip_tests == 'false'
+    name: Identity
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      service_name: identity
+  ticketing_unit_tests:
+    if: github.event_name == 'push' || github.event.inputs.skip_tests == 'false'
+    name: Ticketing
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      service_name: ticketing
+  activity_unit_tests:
+    if: github.event_name == 'push' || github.event.inputs.skip_tests == 'false'
+    name: Activity
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      service_name: activity
+  coding_unit_tests:
+    if: github.event_name == 'push' || github.event.inputs.skip_tests == 'false'
+    name: Coding
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      service_name: coding
+
+  build:
+    name: Build
+    uses: ./.github/workflows/build.yml
+    needs: [identity_unit_tests, ticketing_unit_tests, activity_unit_tests, coding_unit_tests]
+    if: always() && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'failure')
+    secrets: inherit
+
+  integration:
+    if: github.event_name == 'push' || github.event.inputs.skip_tests == 'false'
+    name: Integration
+    uses: ./.github/workflows/end_to_end_tests.yml
+    needs: [build]
+    secrets: inherit
+
+  release_identity:
+    name: Release Identity
+    uses: ./.github/workflows/ecr_release.yml
+    with:
+      tag: identity
+    needs: [integration]
+    if: always() && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'failure')
+    secrets: inherit
+
+  release_ticketing:
+    name: Release Ticketing
+    uses: ./.github/workflows/ecr_release.yml
+    with:
+      tag: ticketing
+    needs: [integration]
+    if: always() && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'failure')
+    secrets: inherit
+
+  release_activity:
+    name: Release Activity
+    uses: ./.github/workflows/ecr_release.yml
+    with:
+      tag: activity
+    needs: [integration]
+    if: always() && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'failure')
+    secrets: inherit
+
+
+  release_coding:
+    name: Release Coding
+    uses: ./.github/workflows/ecr_release.yml
+    with:
+      tag: coding
+    needs: [integration]
+    if: always() && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'failure')
+    secrets: inherit
+
+  release_webapp:
+    name: Release Coding
+    uses: ./.github/workflows/ecr_release.yml
+    with:
+      tag: webapp
+    needs: [integration]
+    if: always() && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'failure')
+    secrets: inherit
+
+  deploy_webapp:
+    name: Deploy Webapp
+    runs-on: ubuntu-20.04
+    needs: [release_webapp]
+    if: always() && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'failure')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/deploy
+        with:
+          image-url:   ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/webapp:${{ github.sha }}
+          ecs-cluster: pacely
+          task-family: webapp
+          ecs-service: webapp
+          aws-region:            ${{ secrets.AWS_REGION }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  deploy_identity:
+    name: Deploy Identity
+    runs-on: ubuntu-20.04
+    needs: [release_identity]
+    if: always() && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'failure')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/deploy
+        with:
+          image-url:   ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/identity:${{ github.sha }}
+          ecs-cluster: pacely
+          task-family: identity
+          ecs-service: identity
+          aws-region:            ${{ secrets.AWS_REGION }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  deploy_identity_worker:
+    name: Deploy Identity Worker
+    runs-on: ubuntu-20.04
+    needs: [release_identity]
+    if: always() && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'failure')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/deploy
+        with:
+          image-url:   ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/identity:${{ github.sha }}
+          ecs-cluster: pacely
+          task-family: identity-worker
+          ecs-service: identity-worker
+          aws-region:            ${{ secrets.AWS_REGION }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  deploy_ticketing:
+    name: Deploy Ticketing
+    runs-on: ubuntu-20.04
+    needs: [release_ticketing]
+    if: always() && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'failure')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/deploy
+        with:
+          image-url:   ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ticketing:${{ github.sha }}
+          ecs-cluster: pacely
+          task-family: ticketing
+          ecs-service: ticketing
+          aws-region:            ${{ secrets.AWS_REGION }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  deploy_ticketing_worker:
+    name: Deploy Ticketing Worker
+    runs-on: ubuntu-20.04
+    needs: [release_ticketing]
+    if: always() && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'failure')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/deploy
+        with:
+          image-url:   ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/ticketing:${{ github.sha }}
+          ecs-cluster: pacely
+          task-family: ticketing-worker
+          ecs-service: ticketing-worker
+          aws-region:            ${{ secrets.AWS_REGION }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  deploy_activity:
+    name: Deploy Activity
+    runs-on: ubuntu-20.04
+    needs: [release_activity]
+    if: always() && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'failure')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/deploy
+        with:
+          image-url:   ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/activity:${{ github.sha }}
+          ecs-cluster: pacely
+          task-family: activity
+          ecs-service: activity
+          aws-region:            ${{ secrets.AWS_REGION }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  deploy_activity_worker:
+    name: Deploy Activity Worker
+    runs-on: ubuntu-20.04
+    needs: [release_activity]
+    if: always() && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'failure')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/deploy
+        with:
+          image-url:   ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/activity:${{ github.sha }}
+          ecs-cluster: pacely
+          task-family: activity-worker
+          ecs-service: activity-worker
+          aws-region:            ${{ secrets.AWS_REGION }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  deploy_coding:
+    name: Deploy Coding
+    runs-on: ubuntu-20.04
+    needs: [release_coding]
+    if: always() && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'failure')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/deploy
+        with:
+          image-url:   ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/coding:${{ github.sha }}
+          ecs-cluster: pacely
+          task-family: coding
+          ecs-service: coding
+          aws-region:            ${{ secrets.AWS_REGION }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  deploy_coding_worker:
+    name: Deploy Coding Worker
+    runs-on: ubuntu-20.04
+    needs: [release_coding]
+    if: always() && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'failure')
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/deploy
+        with:
+          image-url:   ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/coding:${{ github.sha }}
+          ecs-cluster: pacely
+          task-family: coding-worker
+          ecs-service: coding-worker
+          aws-region:            ${{ secrets.AWS_REGION }}
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+

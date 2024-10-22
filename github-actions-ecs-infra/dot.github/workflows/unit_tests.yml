@@ -1,0 +1,33 @@
+name: Unit tests
+run-name: Unit tests [${{ inputs.service_name }}]
+
+on:
+  workflow_dispatch:
+    inputs:
+      service_name:
+        required: true
+        type: string
+        default: identity
+  workflow_call:
+    inputs:
+      service_name:
+        required: true
+        type: string
+        default: identity
+
+jobs:
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        uses: ./.github/actions/build
+        with:
+          dockerfile: ${{ inputs.service_name }}/Dockerfile.test
+          tag: ${{ inputs.service_name }}-test-${{ github.sha }}
+          push: 'false'
+      - name: Run tests
+        env:
+          IMAGE: ${{ inputs.service_name }}-test-${{ github.sha }}
+        run: docker-compose -f ${{ inputs.service_name }}/docker-compose.test.yml run app mix test --color

@@ -1,0 +1,25 @@
+inputs:
+  tag:
+    required: true
+    type: string
+  github_token:
+    required: true
+    type: string
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Login to GHCR
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ inputs.github_token }}
+
+    - name: Pull image
+      shell: bash
+      run: |
+        docker pull ghcr.io/pacelydev/${{ inputs.tag }}:${{ github.sha }}
+        docker tag ghcr.io/pacelydev/${{ inputs.tag }}:${{ github.sha }} ${{ inputs.tag }}

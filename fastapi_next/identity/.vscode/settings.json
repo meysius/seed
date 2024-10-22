@@ -1,0 +1,9 @@
+{
+    "mypy.enabled": true,
+    "mypy.configFile": "./mypy.ini",
+    "mypy.dmypyExecutable": "${workspaceFolder}/.venv/bin/dmypy",
+    "mypy.mypyExecutable": "${workspaceFolder}/.venv/bin/mypy",
+    "python.defaultInterpreterPath": ".venv/bin/python",
+    "mypy.runUsingActiveInterpreter": true,
+    "python.analysis.autoImportCompletions": true,
+}

@@ -1,0 +1,7 @@
+{
+  "eslint.workingDirectories": [
+      "./identity",
+      "./frontend",
+      "./api-types"
+  ]
+}

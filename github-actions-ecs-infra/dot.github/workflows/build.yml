@@ -1,0 +1,63 @@
+on:
+  workflow_call:
+
+jobs:
+  build_identity:
+    name: Identity
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          dockerfile: identity/Dockerfile.prod
+          tag: identity
+          push: true
+
+  build_ticketing:
+    name: Ticketing
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          dockerfile: ticketing/Dockerfile.prod
+          tag: ticketing
+          push: true
+
+  build_activity:
+    name: Activity
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          dockerfile: activity/Dockerfile.prod
+          tag: activity
+          push: true
+
+  build_coding:
+    name: Coding
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          dockerfile: coding/Dockerfile.prod
+          tag: coding
+          push: true
+
+  build_webapp:
+    name: Webapp
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/build
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          dockerfile: webapp/Dockerfile.prod
+          tag: webapp
+          push: true

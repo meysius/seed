@@ -1,0 +1,40 @@
+name: Pull Request Checks
+run-name: Pull Request Checks
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  identity_unit_tests:
+    name: Identity
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      service_name: identity
+  ticketing_unit_tests:
+    name: Ticketing
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      service_name: ticketing
+  activity_unit_tests:
+    name: Activity
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      service_name: activity
+  coding_unit_tests:
+    name: Coding
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      service_name: coding
+
+  build:
+    name: Build
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    needs: [identity_unit_tests, ticketing_unit_tests, activity_unit_tests, coding_unit_tests]
+
+  integration:
+    name: Integration
+    uses: ./.github/workflows/end_to_end_tests.yml
+    needs: [build]
+    secrets: inherit
